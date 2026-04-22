@@ -1,0 +1,24 @@
+Please review this Radio Medical Record:
+
+PROBLEM DESCRIPTION:
+{problem_description}
+
+AIRWAY:
+{airway}
+
+BREATHING:
+{breathing}
+
+CIRCULATION:
+{circulation}
+
+DISABILITY:
+{disability}
+
+EXPOSE:
+{expose}
+
+PRE-CONTACT MEDICATIONS:
+{medications}
+
+Identify all deficiencies and return valid JSON only.

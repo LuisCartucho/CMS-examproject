@@ -1,0 +1,20 @@
+# Python
+backend/.venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.db
+backend/chroma_db/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# Ollama models (too large)
+ollama/
+
+# Environment
+.env
+*.env
+
+# PyCharm
+.idea/

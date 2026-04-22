@@ -1,0 +1,77 @@
+description: "MedRadio-AI Prompt Evaluation Suite"
+
+providers:
+  - id: ollama:medllama3
+    config:
+      temperature: 0.2
+
+prompts:
+  - file://backend/prompts/review_system.txt
+  - file://backend/prompts/response_system.txt
+
+tests:
+  - description: "Complete report — should produce no CRITICAL deficiencies"
+    vars:
+      report: "{{file('test_cases/complete_report.json')}}"
+      guidelines: "Normal ABCDE assessment guidelines apply"
+      history: ""
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return data.deficiencies.filter(d => d.severity === 'CRITICAL').length === 0;
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return data.completeness_score >= 0.9;
+
+  - description: "Missing pulse — should flag CRITICAL in C section"
+    vars:
+      report: "{{file('test_cases/missing_pulse.json')}}"
+      guidelines: "Circulation assessment requires pulse rate."
+      history: ""
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return data.deficiencies.some(d =>
+            d.section === 'C' && d.severity === 'CRITICAL'
+          );
+
+  - description: "Unconscious patient (GCS 4) — response must include MEDEVAC criteria"
+    vars:
+      report: "{{file('test_cases/unconscious_patient.json')}}"
+      guidelines: "Level 4 consciousness requires immediate escalation."
+      history: ""
+      deficiencies: "[]"
+      scenario_context: '{"hours_to_nearest_port": 18}'
+    assert:
+      - type: icontains
+        value: "MEDEVAC"
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return data.next_report_in_minutes <= 15;
+
+  - description: "Low SpO2 (88%) — immediate oxygen action expected"
+    vars:
+      report: "{{file('test_cases/low_spo2.json')}}"
+      guidelines: "SpO2 below 95% requires supplemental oxygen."
+      history: ""
+    assert:
+      - type: icontains
+        value: "oxygen"
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return data.deficiencies.some(d =>
+            d.severity === 'CRITICAL' || d.severity === 'WARNING'
+          );
+
+  - description: "Output must always be valid JSON"
+    vars:
+      report: "{{file('test_cases/complete_report.json')}}"
+      guidelines: ""
+      history: ""
+    assert:
+      - type: is-json

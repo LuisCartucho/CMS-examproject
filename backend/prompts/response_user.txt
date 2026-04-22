@@ -1,0 +1,24 @@
+Please generate a Radio Medical training response for this case:
+
+PROBLEM DESCRIPTION:
+{problem_description}
+
+AIRWAY:
+{airway}
+
+BREATHING:
+{breathing}
+
+CIRCULATION:
+{circulation}
+
+DISABILITY:
+{disability}
+
+EXPOSE:
+{expose}
+
+PRE-CONTACT MEDICATIONS:
+{medications}
+
+Generate a situation-adapted response and return valid JSON only.

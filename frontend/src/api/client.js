@@ -2,7 +2,7 @@ import axios from 'axios'
 
 const api = axios.create({
   baseURL: 'http://localhost:8000',
-  timeout: 120000,
+  timeout: 300000,  // 5 minutes
 })
 
 export const newSession = () => api.post('/api/session/new')
