@@ -1,14 +1,48 @@
-@mcp_tool(name="get_session_history")
-def get_session_history(session_id: str) -> str:
-    """Retrieve conversation history for a session to enable multi-turn context."""
-    memory = memory_store.get(session_id)
-    if not memory:
-        return ""
-    return memory.load_memory_variables({}).get("history", "")
+from services.memory_service import memory_service
 
-@mcp_tool(name="save_to_memory")
-def save_to_memory(session_id: str, human_input: str, ai_output: str) -> bool:
-    """Save a new exchange to session memory."""
-    memory = memory_store.setdefault(session_id, ConversationBufferWindowMemory(k=10))
-    memory.save_context({"input": human_input}, {"output": ai_output})
-    return True
+class SessionMemoryMCP:
+    """
+    MCP Tool: Manages conversation memory per training session.
+    Wraps LangChain ConversationBufferWindowMemory.
+    """
+
+    def __init__(self):
+        self.name = "session_memory_mcp"
+        self.description = "Store and retrieve conversation history for a training session"
+
+    def get_history(self, session_id: str) -> dict:
+        """
+        Retrieve conversation history for a session.
+        """
+        try:
+            history = memory_service.get_history(session_id)
+            return {
+                "success": True,
+                "session_id": session_id,
+                "history": history if history else "",
+                "has_history": bool(history)
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e), "history": ""}
+
+    def save_exchange(self, session_id: str, human_input: str, ai_output: str) -> dict:
+        """
+        Save a new exchange to session memory.
+        """
+        try:
+            memory_service.save(session_id, human_input, ai_output)
+            return {"success": True, "session_id": session_id}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    def get_context_string(self, session_id: str) -> str:
+        """
+        Returns history as a string for LLM context.
+        """
+        result = self.get_history(session_id)
+        if not result["success"] or not result["has_history"]:
+            return "No previous exchanges in this session."
+        return result["history"]
+
+
+session_memory_mcp = SessionMemoryMCP()

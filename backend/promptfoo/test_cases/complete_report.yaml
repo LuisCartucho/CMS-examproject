@@ -1,0 +1,10 @@
+description: "Complete well-documented report"
+vars:
+  problem_description: "Sailor slipped on wet deck, minor laceration on hand. Fully conscious and talking."
+  breathing_description: "normal"
+  breaths_per_min: 14
+  oxygen_saturation_pct: 98
+  pulse_per_min: 72
+  blood_pressure_systolic: 125
+  blood_pressure_diastolic: 80
+  consciousness_level: 1

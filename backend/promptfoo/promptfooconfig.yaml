@@ -1,0 +1,106 @@
+description: "MedRadio-AI Prompt Evaluation Suite"
+
+prompts:
+  - label: "Review System Prompt"
+    raw: |
+      You are a clinical training evaluator for maritime simulation at CMS.
+      Review the Radio Medical Record and identify deficiencies.
+      
+      GUIDELINES: {{guidelines}}
+      HISTORY: {{history}}
+      
+      OUTPUT FORMAT - respond ONLY with valid JSON:
+      {{
+        "deficiencies": [
+          {{
+            "section": "A or B or C or D or E or General",
+            "field": "field_name or null",
+            "severity": "CRITICAL or WARNING or INFO",
+            "description": "explanation",
+            "recommendation": "corrective action"
+          }}
+        ],
+        "overall_assessment": "1-2 sentence summary",
+        "completeness_score": 0.0,
+        "clinical_safety_score": 0.0
+      }}
+      
+      REPORT:
+      Problem: {{problem_description}}
+      Breathing: {{breathing}}
+      Circulation: {{circulation}}
+      Disability: {{disability}}
+
+providers:
+  - id: ollama:mistral:7b
+    config:
+      temperature: 0.2
+
+tests:
+  - description: "Complete report - should have no CRITICAL deficiencies"
+    vars:
+      guidelines: "Normal ranges: HR 60-80, RR 12-16, SpO2 95-100%, BP 120-140/60-90"
+      history: "No previous exchanges."
+      problem_description: "Sailor slipped on deck, minor laceration on hand, fully conscious"
+      breathing: '{"breathing_description": "normal", "breaths_per_min": 14, "oxygen_saturation_pct": 98}'
+      circulation: '{"pulse_per_min": 72, "blood_pressure_systolic": 125, "blood_pressure_diastolic": 80, "skin_color": "normal", "capillary_response_sec": 1.5}'
+      disability: '{"consciousness_level": 1, "convulsions": false, "paralysis": false}'
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return data.deficiencies.filter(d => d.severity === 'CRITICAL').length === 0;
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return data.completeness_score >= 0.5;
+
+  - description: "Missing pulse - must flag CRITICAL in C section"
+    vars:
+      guidelines: "Circulation assessment requires pulse rate measurement."
+      history: "No previous exchanges."
+      problem_description: "Sailor collapsed on deck, unconscious"
+      breathing: '{"breathing_description": "shallow", "breaths_per_min": 8, "oxygen_saturation_pct": 88}'
+      circulation: '{"pulse_per_min": null, "blood_pressure_systolic": null, "blood_pressure_diastolic": null, "skin_color": "pale", "capillary_response_sec": null}'
+      disability: '{"consciousness_level": 4, "convulsions": false, "paralysis": false}'
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return data.deficiencies.some(d => d.severity === 'CRITICAL');
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return data.clinical_safety_score < 0.5;
+
+  - description: "Low SpO2 - must flag oxygen issue"
+    vars:
+      guidelines: "SpO2 below 95% requires supplemental oxygen. Below 90% is critical."
+      history: "No previous exchanges."
+      problem_description: "Sailor with difficulty breathing, chest pain"
+      breathing: '{"breathing_description": "shallow", "breaths_per_min": 24, "oxygen_saturation_pct": 88}'
+      circulation: '{"pulse_per_min": 110, "blood_pressure_systolic": 100, "blood_pressure_diastolic": 65, "skin_color": "pale", "capillary_response_sec": 3}'
+      disability: '{"consciousness_level": 2, "convulsions": false, "paralysis": false}'
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return data.deficiencies.length > 0;
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return data.clinical_safety_score < 0.8;
+
+  - description: "Output must always be valid JSON"
+    vars:
+      guidelines: "Standard ABCDE assessment guidelines."
+      history: "No previous exchanges."
+      problem_description: "General medical complaint"
+      breathing: '{"breathing_description": "normal", "breaths_per_min": 15, "oxygen_saturation_pct": 97}'
+      circulation: '{"pulse_per_min": 75, "blood_pressure_systolic": 120, "blood_pressure_diastolic": 80, "skin_color": "normal", "capillary_response_sec": 1}'
+      disability: '{"consciousness_level": 1, "convulsions": false, "paralysis": false}'
+    assert:
+      - type: is-json

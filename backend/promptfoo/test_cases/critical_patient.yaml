@@ -1,0 +1,10 @@
+description: "Critical patient - unconscious with abnormal vitals"
+vars:
+  problem_description: "Sailor found unconscious after fall from height, not breathing normally"
+  breathing_description: "shallow"
+  breaths_per_min: 6
+  oxygen_saturation_pct: 82
+  pulse_per_min: 130
+  blood_pressure_systolic: 80
+  blood_pressure_diastolic: 50
+  consciousness_level: 4

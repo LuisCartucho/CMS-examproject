@@ -18,3 +18,4 @@ ollama/
 
 # PyCharm
 .idea/
+*.iml

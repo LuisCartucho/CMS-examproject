@@ -1,0 +1,10 @@
+description: "Report with missing critical vitals"
+vars:
+  problem_description: "Sailor found unresponsive in cabin"
+  breathing_description: "shallow"
+  breaths_per_min: null
+  oxygen_saturation_pct: null
+  pulse_per_min: null
+  blood_pressure_systolic: null
+  blood_pressure_diastolic: null
+  consciousness_level: 4

@@ -1,14 +1,15 @@
 import json
 from langchain_ollama import OllamaLLM
 from langchain.prompts import PromptTemplate
-from langchain_core.runnables import RunnablePassthrough
 from services.memory_service import memory_service
+from mcp.medical_guidelines_mcp import medical_guidelines_mcp
+from mcp.session_memory_mcp import session_memory_mcp
+from mcp.scenario_context_mcp import scenario_context_mcp
 
 llm = OllamaLLM(model="mistral:7b", temperature=0.2)
 
 review_system = open("prompts/review_system.txt").read()
 review_user = open("prompts/review_user.txt").read()
-
 full_prompt = review_system + "\n\n" + review_user
 
 prompt = PromptTemplate(
@@ -23,12 +24,20 @@ prompt = PromptTemplate(
 review_chain = prompt | llm
 
 def run_review(record: dict, session_id: str) -> dict:
-    history = memory_service.get_history(session_id)
+    problem = record.get("problem_description", "")
+
+    # MCP calls
+    guidelines = medical_guidelines_mcp.get_context_string(problem)
+    history    = session_memory_mcp.get_context_string(session_id)
+    scenario   = scenario_context_mcp.get_context_string(problem)
+
+    # Combine guidelines with scenario context
+    full_context = f"{guidelines}\n\nSCENARIO CONTEXT:\n{scenario}"
 
     result = review_chain.invoke({
-        "guidelines": "Use standard ABCDE maritime medical assessment guidelines.",
-        "history": history if history else "No previous exchanges.",
-        "problem_description": record.get("problem_description", ""),
+        "guidelines": full_context,
+        "history": history,
+        "problem_description": problem,
         "airway": json.dumps(record.get("airway", {})),
         "breathing": json.dumps(record.get("breathing", {})),
         "circulation": json.dumps(record.get("circulation", {})),
@@ -37,7 +46,6 @@ def run_review(record: dict, session_id: str) -> dict:
         "medications": json.dumps(record.get("pre_contact_medications", [])),
     })
 
-    # Clean response and parse JSON
     cleaned = result.strip()
     if "```" in cleaned:
         cleaned = cleaned.split("```")[1]
@@ -46,10 +54,9 @@ def run_review(record: dict, session_id: str) -> dict:
 
     parsed = json.loads(cleaned)
 
-    # Save to memory
-    memory_service.save(
+    session_memory_mcp.save_exchange(
         session_id,
-        f"Report submitted: {record.get('problem_description', '')}",
+        f"Report: {problem}",
         parsed.get("overall_assessment", "")
     )
 
