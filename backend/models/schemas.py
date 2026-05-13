@@ -1,6 +1,21 @@
 from pydantic import BaseModel
 from typing import Optional, Literal
 
+class ChatMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str
+    timestamp: Optional[str] = None
+
+class ChatRequest(BaseModel):
+    session_id: str
+    message: str
+    record_summary: Optional[str] = None
+
+class ChatResponse(BaseModel):
+    session_id: str
+    reply: str
+    case_status: Literal["ongoing", "recovering", "critical", "closed"]
+    next_check_minutes: Optional[int] = None
 
 class PatientInfo(BaseModel):
     name: Optional[str] = None

@@ -20,6 +20,9 @@ class SessionRecord(Base):
     id = Column(String, primary_key=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     scenario_id = Column(String, nullable=True)
+    status = Column(String, default="ongoing")
+    patient_name = Column(String, nullable=True)
+    problem_summary = Column(String, nullable=True)
 
 class ExchangeRecord(Base):
     __tablename__ = "exchanges"
