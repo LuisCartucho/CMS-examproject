@@ -37,7 +37,12 @@ def update_status(session_id: str, status: str, db: Session = Depends(get_db)):
     return {"session_id": session_id, "status": status}
 
 @router.patch("/session/{session_id}/patient")
-def update_patient(session_id: str, patient_name: str = "", problem_summary: str = "", db: Session = Depends(get_db)):
+def update_patient(
+    session_id: str,
+    patient_name: str = "",
+    problem_summary: str = "",
+    db: Session = Depends(get_db)
+):
     record = db.query(SessionRecord).filter(SessionRecord.id == session_id).first()
     if not record:
         return {"error": "Session not found"}

@@ -141,7 +141,7 @@ export default function App() {
     await api.patch(`/api/session/${session_id}/patient?patient_name=${pn}&problem_summary=${ps}`)
 
     setReview(reviewRes.data)
-    setCaseTab('chat')
+    setCaseTab('assessment')
     setActiveCase({
       session_id,
       patient_name: form.patient_info.name,
@@ -200,9 +200,20 @@ export default function App() {
   }
 
   const openCase = async (c: Case) => {
-    setActiveCase(c)
+  setActiveCase(c)
+  setReview(null)
+  setCaseTab('assessment')
+  try {
+    const [msgsRes, reviewRes] = await Promise.all([
+      api.get(`/api/session/${c.session_id}/messages`),
+      api.get(`/api/session/${c.session_id}/review`)
+    ])
+    setMessages(msgsRes.data)
+    setReview(reviewRes.data)
+  } catch {
     setMessages([])
-    setScreen('case')
+  }
+  setScreen('case')
   }
 
   // ── DASHBOARD ──────────────────────────────────────────────────────────

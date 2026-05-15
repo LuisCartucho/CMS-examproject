@@ -14,6 +14,15 @@ engine = create_engine(
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
+class MessageRecord(Base):
+    __tablename__ = "messages"
+
+    id = Column(String, primary_key=True)
+    session_id = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    role = Column(String, nullable=False)
+    content = Column(Text, nullable=False)
+
 class SessionRecord(Base):
     __tablename__ = "sessions"
 
@@ -23,6 +32,8 @@ class SessionRecord(Base):
     status = Column(String, default="ongoing")
     patient_name = Column(String, nullable=True)
     problem_summary = Column(String, nullable=True)
+    review_data = Column(Text, nullable=True)
+
 
 class ExchangeRecord(Base):
     __tablename__ = "exchanges"

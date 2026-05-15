@@ -1,14 +1,22 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session as DBSession
 from models.schemas import RadioMedicalRecord, ReviewResponse
+from models.database import get_db, SessionRecord
 from services.review_chain import run_review
-import uuid
+import uuid, json
 
 router = APIRouter()
 
 @router.post("/review", response_model=ReviewResponse)
-def review(record: RadioMedicalRecord):
+def review(record: RadioMedicalRecord, db: DBSession = Depends(get_db)):
     session_id = record.session_id or str(uuid.uuid4())
     result = run_review(record.model_dump(), session_id)
+
+    # Save review to session
+    session = db.query(SessionRecord).filter(SessionRecord.id == session_id).first()
+    if session:
+        session.review_data = json.dumps(result)
+        db.commit()
 
     return ReviewResponse(
         session_id=session_id,
