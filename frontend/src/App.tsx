@@ -546,6 +546,16 @@ export default function App() {
               Next check: <span className="font-semibold text-blue-600">{nextCheck} min</span>
             </div>
           )}
+          {activeCase.status !== 'closed' && (
+            <button onClick={async () => {
+              await api.patch(`/api/session/${activeCase.session_id}/status?status=closed`)
+              setActiveCase({ ...activeCase, status: 'closed' })
+              loadCases()
+            }}
+              className="text-xs text-red-500 border border-red-200 px-3 py-1 rounded-full hover:bg-red-50 transition-colors">
+              Close Case
+            </button>
+          )}
         </header>
 
         {/* Tabs */}
