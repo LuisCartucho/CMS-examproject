@@ -95,6 +95,7 @@ export default function App() {
   const chatRef = useRef<HTMLDivElement>(null)
   const [caseTab, setCaseTab] = useState<'assessment' | 'chat'>('assessment')
   const [review, setReview] = useState<any>(null)
+  const [chatOpen, setChatOpen] = useState(false)
 
   useEffect(() => {
     loadCases()
@@ -532,7 +533,8 @@ export default function App() {
   if (screen === 'case' && activeCase) {
     const st = statusConfig[activeCase.status] || statusConfig.ongoing
     return (
-      <div style={{ fontFamily: "'DM Sans','Segoe UI',sans-serif" }} className="min-h-screen bg-gray-50 flex flex-col">
+      <div style={{ fontFamily: "'DM Sans','Segoe UI',sans-serif" }} className="min-h-screen bg-gray-50">
+
         {/* Header */}
         <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center gap-4">
           <button onClick={() => { setScreen('dashboard'); loadCases() }} className="text-gray-400 hover:text-gray-700 text-sm">← Cases</button>
@@ -558,172 +560,189 @@ export default function App() {
           )}
         </header>
 
-        {/* Tabs */}
-        <div className="bg-white border-b border-gray-200 px-6">
-          <div className="flex gap-1 max-w-5xl mx-auto">
-            {[
-              { id: 'assessment', icon: '📋', label: 'AI Assessment' },
-              { id: 'chat',       icon: '💬', label: 'Radio Medical Chat' },
-            ].map(tab => (
-              <button key={tab.id} onClick={() => setCaseTab(tab.id as any)}
-                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${caseTab === tab.id ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
-                <span>{tab.icon}</span>{tab.label}
-                {tab.id === 'chat' && messages.length > 0 && (
-                  <span className="bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">{messages.length}</span>
+        {/* Main content */}
+        <div className="max-w-5xl mx-auto px-6 py-6 space-y-5 pb-24">
+
+          {/* Scores */}
+          {review && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-white rounded-xl border border-gray-200 p-5 flex items-center gap-4">
+                <div className="w-16 h-16 relative flex items-center justify-center flex-shrink-0">
+                  <svg className="-rotate-90 absolute" width="64" height="64">
+                    <circle cx="32" cy="32" r="26" fill="none" stroke="#e5e7eb" strokeWidth="6"/>
+                    <circle cx="32" cy="32" r="26" fill="none"
+                      stroke={review.completeness_score >= 0.8 ? '#22c55e' : review.completeness_score >= 0.5 ? '#f59e0b' : '#ef4444'}
+                      strokeWidth="6" strokeDasharray={163.4}
+                      strokeDashoffset={163.4 - (review.completeness_score * 163.4)}
+                      strokeLinecap="round"/>
+                  </svg>
+                  <span className="text-sm font-bold relative z-10">{Math.round(review.completeness_score * 100)}%</span>
+                </div>
+                <div>
+                  <div className="font-semibold text-gray-700">Completeness</div>
+                  <div className="text-xs text-gray-400">Form documentation</div>
+                </div>
+              </div>
+              <div className="bg-white rounded-xl border border-gray-200 p-5 flex items-center gap-4">
+                <div className="w-16 h-16 relative flex items-center justify-center flex-shrink-0">
+                  <svg className="-rotate-90 absolute" width="64" height="64">
+                    <circle cx="32" cy="32" r="26" fill="none" stroke="#e5e7eb" strokeWidth="6"/>
+                    <circle cx="32" cy="32" r="26" fill="none"
+                      stroke={review.clinical_safety_score >= 0.8 ? '#22c55e' : review.clinical_safety_score >= 0.5 ? '#f59e0b' : '#ef4444'}
+                      strokeWidth="6" strokeDasharray={163.4}
+                      strokeDashoffset={163.4 - (review.clinical_safety_score * 163.4)}
+                      strokeLinecap="round"/>
+                  </svg>
+                  <span className="text-sm font-bold relative z-10">{Math.round(review.clinical_safety_score * 100)}%</span>
+                </div>
+                <div>
+                  <div className="font-semibold text-gray-700">Clinical Safety</div>
+                  <div className="text-xs text-gray-400">Patient safety score</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Overall Assessment */}
+          {review && (
+            <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
+              <div className="text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">Overall Assessment</div>
+              <p className="text-sm text-blue-900">{review.overall_assessment}</p>
+            </div>
+          )}
+
+          {/* Radio Medical Instructions */}
+          {messages.length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <div className="bg-blue-600 px-5 py-3 flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-white text-xs font-bold">RM</div>
+                <div>
+                  <div className="text-white font-semibold text-sm">Radio Medical Denmark</div>
+                  <div className="text-blue-200 text-xs">Initial Assessment Response</div>
+                </div>
+                {nextCheck && (
+                  <div className="ml-auto text-blue-200 text-xs">Next report in {nextCheck} min</div>
                 )}
-              </button>
-            ))}
-          </div>
+              </div>
+              <div className="p-5">
+                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
+                  {messages[0]?.content}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Deficiencies */}
+          {review && review.deficiencies.length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
+                Form Deficiencies ({review.deficiencies.length})
+              </div>
+              <div className="space-y-2">
+                {review.deficiencies.map((d: any, i: number) => (
+                  <div key={i} className={`p-3 rounded-lg border ${d.severity === 'CRITICAL' ? 'bg-red-50 border-red-200' : d.severity === 'WARNING' ? 'bg-yellow-50 border-yellow-200' : 'bg-blue-50 border-blue-100'}`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded border ${d.severity === 'CRITICAL' ? 'bg-red-100 text-red-700 border-red-200' : d.severity === 'WARNING' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' : 'bg-blue-100 text-blue-700 border-blue-100'}`}>
+                        {d.severity}
+                      </span>
+                      <span className="text-xs text-gray-500">Section {d.section}{d.field ? ` — ${d.field}` : ''}</span>
+                    </div>
+                    <p className="text-sm font-medium text-gray-800">{d.description}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">→ {d.recommendation}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {!review && (
+            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+              <div className="text-4xl mb-3">📋</div>
+              <p className="text-sm text-gray-400">No assessment available for this case.</p>
+            </div>
+          )}
         </div>
 
-        {/* Assessment Tab */}
-        {caseTab === 'assessment' && (
-          <div className="flex-1 overflow-y-auto px-6 py-6 max-w-5xl mx-auto w-full">
-            {!review ? (
-              <div className="text-center py-12 text-gray-400">
-                <div className="text-4xl mb-3">📋</div>
-                <p className="text-sm">No assessment available for this case.</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {/* Scores */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-white rounded-xl border border-gray-200 p-5 flex items-center gap-4">
-                    <div className="w-16 h-16 relative flex items-center justify-center">
-                      <svg className="-rotate-90 absolute" width="64" height="64">
-                        <circle cx="32" cy="32" r="26" fill="none" stroke="#e5e7eb" strokeWidth="6"/>
-                        <circle cx="32" cy="32" r="26" fill="none"
-                          stroke={review.completeness_score >= 0.8 ? '#22c55e' : review.completeness_score >= 0.5 ? '#f59e0b' : '#ef4444'}
-                          strokeWidth="6" strokeDasharray={163.4}
-                          strokeDashoffset={163.4 - (review.completeness_score * 163.4)}
-                          strokeLinecap="round"/>
-                      </svg>
-                      <span className="text-sm font-bold relative z-10">{Math.round(review.completeness_score * 100)}%</span>
-                    </div>
-                    <div>
-                      <div className="font-semibold text-gray-700">Completeness</div>
-                      <div className="text-xs text-gray-400">Form documentation</div>
-                    </div>
-                  </div>
-                  <div className="bg-white rounded-xl border border-gray-200 p-5 flex items-center gap-4">
-                    <div className="w-16 h-16 relative flex items-center justify-center">
-                      <svg className="-rotate-90 absolute" width="64" height="64">
-                        <circle cx="32" cy="32" r="26" fill="none" stroke="#e5e7eb" strokeWidth="6"/>
-                        <circle cx="32" cy="32" r="26" fill="none"
-                          stroke={review.clinical_safety_score >= 0.8 ? '#22c55e' : review.clinical_safety_score >= 0.5 ? '#f59e0b' : '#ef4444'}
-                          strokeWidth="6" strokeDasharray={163.4}
-                          strokeDashoffset={163.4 - (review.clinical_safety_score * 163.4)}
-                          strokeLinecap="round"/>
-                      </svg>
-                      <span className="text-sm font-bold relative z-10">{Math.round(review.clinical_safety_score * 100)}%</span>
-                    </div>
-                    <div>
-                      <div className="font-semibold text-gray-700">Clinical Safety</div>
-                      <div className="text-xs text-gray-400">Patient safety score</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Overall assessment */}
-                <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
-                  <div className="text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">Overall Assessment</div>
-                  <p className="text-sm text-blue-900">{review.overall_assessment}</p>
-                </div>
-
-                {/* Deficiencies */}
-                <div className="bg-white rounded-xl border border-gray-200 p-5">
-                  <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
-                    Deficiencies ({review.deficiencies.length})
-                  </div>
-                  <div className="space-y-2">
-                    {review.deficiencies.length === 0 ? (
-                      <p className="text-sm text-green-600">✓ No deficiencies found</p>
-                    ) : review.deficiencies.map((d, i) => (
-                      <div key={i} className={`p-3 rounded-lg border ${d.severity === 'CRITICAL' ? 'bg-red-50 border-red-200' : d.severity === 'WARNING' ? 'bg-yellow-50 border-yellow-200' : 'bg-blue-50 border-blue-100'}`}>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className={`text-xs font-bold px-2 py-0.5 rounded border ${d.severity === 'CRITICAL' ? 'bg-red-100 text-red-700 border-red-200' : d.severity === 'WARNING' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' : 'bg-blue-100 text-blue-700 border-blue-100'}`}>
-                            {d.severity}
-                          </span>
-                          <span className="text-xs text-gray-500">Section {d.section}{d.field ? ` — ${d.field}` : ''}</span>
-                        </div>
-                        <p className="text-sm font-medium text-gray-800">{d.description}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">→ {d.recommendation}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
+        {/* Floating Chat Button */}
+        {!chatOpen && activeCase.status !== 'closed' && (
+          <button onClick={() => setChatOpen(true)}
+            className="fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 text-white rounded-full px-5 py-3 shadow-lg flex items-center gap-2 transition-all z-50">
+            <span>📡</span>
+            <span className="font-semibold text-sm">Radio Medical</span>
+            {messages.length > 1 && (
+              <span className="bg-white text-blue-600 text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                {messages.length - 1}
+              </span>
             )}
-          </div>
+          </button>
         )}
 
-        {/* Chat Tab */}
-        {caseTab === 'chat' && (
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <div className="flex-1 overflow-y-auto px-6 py-6 max-w-3xl mx-auto w-full" ref={chatRef}>
-              {messages.length === 0 ? (
-                <div className="text-center text-gray-400 py-12">
-                  <div className="text-4xl mb-3">📡</div>
-                  <p className="text-sm">No messages yet.</p>
-                  <p className="text-sm mt-1">Type an update to contact Radio Medical Denmark.</p>
+        {/* Floating Chat Window */}
+        {chatOpen && (
+          <div className="fixed bottom-6 right-6 w-96 h-[500px] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col z-50">
+            {/* Chat header */}
+            <div className="bg-blue-600 rounded-t-2xl px-4 py-3 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white text-xs font-bold">RM</div>
+              <div className="flex-1">
+                <div className="text-white font-semibold text-sm">Radio Medical Denmark</div>
+                <div className="text-blue-200 text-xs flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 bg-green-400 rounded-full"></span> Online
+                </div>
+              </div>
+              <button onClick={() => setChatOpen(false)} className="text-white/70 hover:text-white text-lg">×</button>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3" ref={chatRef}>
+              {messages.slice(1).length === 0 ? (
+                <div className="text-center text-gray-400 py-8">
+                  <p className="text-sm">Use this chat to report patient updates</p>
+                  <p className="text-xs mt-1">e.g. "Bleeding has stopped, pulse now 85"</p>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {messages.map((msg, i) => (
-                    <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      {msg.role === 'assistant' && (
-                        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold mr-3 flex-shrink-0 mt-1">RM</div>
-                      )}
-                      <div className={`max-w-lg rounded-2xl px-4 py-3 ${msg.role === 'assistant' ? 'bg-white border border-gray-200 shadow-sm' : 'bg-blue-600 text-white'}`}>
-                        {msg.role === 'assistant' && (
-                          <div className="text-xs font-bold text-blue-600 mb-1">Radio Medical Denmark · {msg.timestamp}</div>
-                        )}
-                        <p className="text-sm leading-relaxed whitespace-pre-line">{msg.content}</p>
-                        {msg.role === 'user' && (
-                          <div className="text-xs text-blue-200 mt-1 text-right">{msg.timestamp}</div>
-                        )}
-                      </div>
-                      {msg.role === 'user' && (
-                        <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 text-xs font-bold ml-3 flex-shrink-0 mt-1">MO</div>
-                      )}
+                messages.slice(1).map((msg, i) => (
+                  <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    {msg.role === 'assistant' && (
+                      <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold mr-2 flex-shrink-0 mt-1">RM</div>
+                    )}
+                    <div className={`max-w-[260px] rounded-2xl px-3 py-2 ${msg.role === 'assistant' ? 'bg-gray-100 text-gray-800' : 'bg-blue-600 text-white'}`}>
+                      <p className="text-xs leading-relaxed whitespace-pre-line">{msg.content}</p>
+                      <p className={`text-xs mt-1 ${msg.role === 'assistant' ? 'text-gray-400' : 'text-blue-200'}`}>{msg.timestamp}</p>
                     </div>
-                  ))}
-                  {loading === 'chat' && (
-                    <div className="flex justify-start">
-                      <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold mr-3">RM</div>
-                      <div className="bg-white border border-gray-200 rounded-2xl px-4 py-3 shadow-sm">
-                        <div className="text-xs font-bold text-blue-600 mb-1">Radio Medical Denmark</div>
-                        <div className="flex gap-1">
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                        </div>
-                      </div>
+                    {msg.role === 'user' && (
+                      <div className="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 text-xs font-bold ml-2 flex-shrink-0 mt-1">MO</div>
+                    )}
+                  </div>
+                ))
+              )}
+              {loading === 'chat' && (
+                <div className="flex justify-start">
+                  <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold mr-2">RM</div>
+                  <div className="bg-gray-100 rounded-2xl px-3 py-2">
+                    <div className="flex gap-1">
+                      <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                      <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                      <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                     </div>
-                  )}
+                  </div>
                 </div>
               )}
             </div>
 
-            {activeCase.status === 'closed' ? (
-              <div className="bg-gray-100 border-t border-gray-200 px-6 py-4 text-center text-sm text-gray-500">
-                This case is closed. <button onClick={() => setScreen('dashboard')} className="text-blue-600 hover:underline">Return to dashboard</button>
+            {/* Input */}
+            <div className="p-3 border-t border-gray-100">
+              <div className="flex gap-2">
+                <input value={chatInput} onChange={e => setChatInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleChat()}
+                  placeholder="Report patient update..."
+                  disabled={!!loading}
+                  className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-blue-400 disabled:opacity-50" />
+                <button onClick={handleChat} disabled={!chatInput.trim() || !!loading}
+                  className="bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-semibold px-3 py-2 rounded-xl text-xs transition-colors">
+                  Send
+                </button>
               </div>
-            ) : (
-              <div className="bg-white border-t border-gray-200 px-6 py-4">
-                <div className="max-w-3xl mx-auto flex gap-3">
-                  <input value={chatInput} onChange={e => setChatInput(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleChat()}
-                    placeholder="Report patient update to Radio Medical..."
-                    disabled={!!loading}
-                    className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-400 disabled:opacity-50" />
-                  <button onClick={handleChat} disabled={!chatInput.trim() || !!loading}
-                    className="bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-semibold px-5 py-3 rounded-xl text-sm transition-colors">
-                    Send
-                  </button>
-                </div>
-              </div>
-            )}
+            </div>
           </div>
         )}
       </div>
